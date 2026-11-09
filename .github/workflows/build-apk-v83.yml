@@ -1,0 +1,60 @@
+
+name: Build Blue Big Fish V83 APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'V83-part-*'
+      - '.github/workflows/build-apk-v83.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Rebuild V83 ZIP
+        run: |
+          cat V83-part-00 V83-part-01 V83-part-02 V83-part-03 V83-part-04 V83-part-05 > V83.zip
+          unzip -t V83.zip
+          mkdir source
+          unzip -q V83.zip -d source
+
+      - name: Find Android project
+        run: |
+          PROJECT_DIR=$(find "$GITHUB_WORKSPACE/source" -name settings.gradle.kts -o -name settings.gradle | head -n 1 | xargs dirname)
+          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
+          echo "Android project: $PROJECT_DIR"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build APK
+        run: gradle --no-daemon -p "$PROJECT_DIR" assembleDebug
+
+      - name: Prepare APK
+        run: |
+          mkdir -p output
+          find "$PROJECT_DIR" -name app-debug.apk -exec cp {} output/blue-big-fish-v83.apk \;
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: blue-big-fish-v83-apk
+          path: output/blue-big-fish-v83.apk
