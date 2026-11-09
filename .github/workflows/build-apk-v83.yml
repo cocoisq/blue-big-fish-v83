@@ -27,7 +27,7 @@ jobs:
 
       - name: Find Android project
         run: |
-          PROJECT_DIR=$(find "$GITHUB_WORKSPACE/source" -name settings.gradle.kts -o -name settings.gradle | head -n 1 | xargs dirname)
+          PROJECT_DIR=$(find "$GITHUB_WORKSPACE/source" \( -name settings.gradle.kts -o -name settings.gradle \) -print -quit | xargs dirname)
           echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
           echo "Android project: $PROJECT_DIR"
 
@@ -39,6 +39,11 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+
+      - name: Accept Android SDK licenses
+        run: |
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -n 1)
+          yes | "$SDKMANAGER" --licenses
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -52,6 +57,7 @@ jobs:
         run: |
           mkdir -p output
           find "$PROJECT_DIR" -name app-debug.apk -exec cp {} output/blue-big-fish-v83.apk \;
+          test -f output/blue-big-fish-v83.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
